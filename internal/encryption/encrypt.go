@@ -11,7 +11,7 @@ import (
 )
 
 func EncryptText(data string) (string, error) {
-	encryptKey := []byte(config.Config.EncryptionKey)
+	encryptKey := []byte(config.Config.Common.EncryptionKey)
 
 	text := []byte(data)
 

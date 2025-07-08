@@ -10,7 +10,7 @@ import (
 )
 
 func DecryptText(text string) (string, error) {
-	encryptKey := []byte(config.Config.EncryptionKey)
+	encryptKey := []byte(config.Config.Common.EncryptionKey)
 
 	ciphertext, err := hex.DecodeString(text)
 	if err != nil {
