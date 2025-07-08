@@ -13,7 +13,7 @@ var (
 )
 
 func Init() error {
-	releases, _, err := gh.GHClient.Repositories.ListReleases(gh.GHCtx, config.Config.GHRepoOwner, config.Config.GHRepository, &github.ListOptions{PerPage: 100})
+	releases, _, err := gh.GHClient.Repositories.ListReleases(gh.GHCtx, config.Config.Github.RepoOwner, config.Config.Github.Repository, &github.ListOptions{PerPage: 100})
 	if err != nil {
 		log.Error().Err(err).Msg("Error getting releases")
 		return err
