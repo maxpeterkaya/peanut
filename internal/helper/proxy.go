@@ -19,7 +19,7 @@ func ProxyDownload(asset github.ReleaseAsset, token string, w http.ResponseWrite
 
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("Accept", "application/octet-stream")
-	if len(config.Config.GHToken) > 0 {
+	if len(config.Config.Github.Token) > 0 {
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
 
