@@ -9,20 +9,33 @@ import (
 )
 
 type ConfigStruct struct {
-	DbUser string `toml:"db_user"`
-	DbPass string `toml:"db_pass"`
-	DbName string `toml:"db_name"`
-	DbHost string `toml:"db_host"`
-	DbPort int    `toml:"db_port"`
+	Admin    admin        `toml:"admin"`
+	Common   commonStruct `toml:"common"`
+	Database database     `toml:"database"`
+	Github   github       `toml:"github"`
+}
 
-	AdminUser string `toml:"admin_user"`
-	AdminPass string `toml:"admin_pass"`
+type database struct {
+	User string `toml:"user"`
+	Pass string `toml:"pass"`
+	Name string `toml:"name"`
+	Host string `toml:"host"`
+	Port int    `toml:"port"`
+}
 
+type github struct {
+	Token      string `toml:"token"`
+	Repository string `toml:"repository"`
+	RepoOwner  string `toml:"repo_owner"`
+}
+
+type admin struct {
+	User string `toml:"user"`
+	Pass string `toml:"pass"`
+}
+
+type commonStruct struct {
 	EncryptionKey string `toml:"encryption_key"`
-
-	GHToken      string `toml:"gh_token"`
-	GHRepository string `toml:"gh_repository"`
-	GHRepoOwner  string `toml:"gh_repo_owner"`
 }
 
 var (
@@ -37,16 +50,20 @@ func Init() error {
 
 	if !exists {
 		Config = &ConfigStruct{
-			DbHost: getEnv("DB_HOST", "localhost"),
-			DbUser: getEnv("DB_USER", "postgres"),
-			DbPass: getEnv("DB_PASS", "postgres"),
-			DbPort: getEnvAsInt("DB_PORT", 5432),
-			DbName: getEnv("DB_NAME", "peanut"),
-
-			AdminUser: getEnv("ADMIN_USER", common.GenerateUsername()),
-			AdminPass: getEnv("ADMIN_PASS", common.GeneratePassword(10)),
-
-			EncryptionKey: getEnv("ENCRYPT_KEY", common.GenerateKey(32)),
+			Database: database{
+				Host: getEnv("DB_HOST", "localhost"),
+				User: getEnv("DB_USER", "postgres"),
+				Pass: getEnv("DB_PASS", "postgres"),
+				Port: getEnvAsInt("DB_PORT", 5432),
+				Name: getEnv("DB_NAME", "peanut"),
+			},
+			Admin: admin{
+				User: getEnv("ADMIN_USER", common.GenerateUsername()),
+				Pass: getEnv("ADMIN_PASS", common.GeneratePassword(10)),
+			},
+			Common: commonStruct{
+				EncryptionKey: getEnv("ENCRYPT_KEY", common.GenerateKey(32)),
+			},
 		}
 
 		file, err := os.Create(fileName)
@@ -66,7 +83,7 @@ func Init() error {
 	} else {
 		file, err := os.ReadFile(fileName)
 		if err != nil {
-			log.Error().Err(err).Msg("Error opening config.toml")
+			log.Error().Err(err).Msg("Error opening econfig.toml")
 			return err
 		}
 
@@ -75,7 +92,7 @@ func Init() error {
 			return err
 		}
 
-		log.Info().Msg("loaded config.toml")
+		log.Info().Msg("loaded econfig.toml")
 		IsReady = true
 	}
 
