@@ -12,8 +12,8 @@ var (
 )
 
 func Init() error {
-	if len(config.Config.GHToken) > 0 {
-		GHClient = github.NewClient(nil).WithAuthToken(config.Config.GHToken)
+	if len(config.Config.Github.Token) > 0 {
+		GHClient = github.NewClient(nil).WithAuthToken(config.Config.Github.Token)
 	} else {
 		GHClient = github.NewClient(nil)
 	}
