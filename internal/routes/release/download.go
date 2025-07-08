@@ -23,7 +23,7 @@ func DownloadPlatform(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	helper.ProxyDownload(*release, config.Config.GHToken, w, r)
+	helper.ProxyDownload(*release, config.Config.Github.Token, w, r)
 	return
 }
 
@@ -40,6 +40,6 @@ func Download(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	helper.ProxyDownload(*release, config.Config.GHToken, w, r)
+	helper.ProxyDownload(*release, config.Config.Github.Token, w, r)
 	return
 }
