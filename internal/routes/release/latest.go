@@ -2,6 +2,7 @@ package release
 
 import (
 	"encoding/json"
+	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog/log"
 	"net/http"
 	"peanut/internal/cache"
@@ -9,20 +10,30 @@ import (
 )
 
 func GetLatestRelease(w http.ResponseWriter, r *http.Request) {
-	release := github.Release{
-		Name:        cache.LatestRelease.Name,
-		Body:        cache.LatestRelease.Body,
-		TagName:     cache.LatestRelease.TagName,
-		Draft:       cache.LatestRelease.Draft,
-		Prerelease:  cache.LatestRelease.Prerelease,
-		CreatedAt:   cache.LatestRelease.CreatedAt,
-		PublishedAt: cache.LatestRelease.PublishedAt,
-		AuthorName:  cache.LatestRelease.Author.Name,
-	}
-
-	err := json.NewEncoder(w).Encode(release)
+	repo := chi.URLParam(r, "repository")
+	latest, err := cache.FindLatest(repo)
 	if err != nil {
 		log.Error().Err(err)
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	release := github.Release{
+		Name:        latest.Name,
+		Body:        latest.Body,
+		TagName:     latest.TagName,
+		Draft:       latest.Draft,
+		Prerelease:  latest.Prerelease,
+		CreatedAt:   latest.CreatedAt,
+		PublishedAt: latest.PublishedAt,
+		AuthorName:  latest.Author.Name,
+	}
+
+	err = json.NewEncoder(w).Encode(release)
+	if err != nil {
+		log.Error().Err(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 	return
 }

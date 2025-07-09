@@ -11,10 +11,12 @@ import (
 
 func GetVersionRelease(w http.ResponseWriter, r *http.Request) {
 	tag := chi.URLParam(r, "tag")
+	repo := chi.URLParam(r, "repo")
 
-	data, err := cache.FindVersion(tag)
+	data, err := cache.FindVersion(repo, tag)
 	if err != nil {
 		log.Error().Err(err).Str("tag", tag).Msg("GetVersionRelease")
+		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
@@ -32,6 +34,8 @@ func GetVersionRelease(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(release)
 	if err != nil {
 		log.Error().Err(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 	return
 }

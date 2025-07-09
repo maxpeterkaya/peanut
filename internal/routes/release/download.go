@@ -10,12 +10,13 @@ import (
 
 func DownloadPlatform(w http.ResponseWriter, r *http.Request) {
 	platform := chi.URLParam(r, "platform")
+	repo := chi.URLParam(r, "repository")
 
 	ua := helper.ParseUserAgent(platform)
 
-	release := helper.GetPlatformRelease(ua.FirstPrediction)
+	release := helper.GetPlatformRelease(repo, ua.FirstPrediction)
 	if release == nil {
-		release = helper.GetPlatformRelease(ua.SecondPrediction)
+		release = helper.GetPlatformRelease(repo, ua.SecondPrediction)
 	}
 
 	if release == nil {
@@ -28,11 +29,13 @@ func DownloadPlatform(w http.ResponseWriter, r *http.Request) {
 }
 
 func Download(w http.ResponseWriter, r *http.Request) {
+	repo := chi.URLParam(r, "repository")
+
 	ua := helper.ParseUserAgent(strings.ToLower(r.UserAgent()))
 
-	release := helper.GetPlatformRelease(ua.FirstPrediction)
+	release := helper.GetPlatformRelease(repo, ua.FirstPrediction)
 	if release == nil {
-		release = helper.GetPlatformRelease(ua.SecondPrediction)
+		release = helper.GetPlatformRelease(repo, ua.SecondPrediction)
 	}
 
 	if release == nil {
