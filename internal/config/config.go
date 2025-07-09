@@ -24,9 +24,9 @@ type database struct {
 }
 
 type github struct {
-	Token      string `toml:"token"`
-	Repository string `toml:"repository"`
-	RepoOwner  string `toml:"repo_owner"`
+	Token        string   `toml:"token"`
+	Repositories []string `toml:"repositories"`
+	Owner        string   `toml:"owner"`
 }
 
 type admin struct {
@@ -64,26 +64,31 @@ func Init() error {
 			Common: commonStruct{
 				EncryptionKey: getEnv("ENCRYPT_KEY", common.GenerateKey(32)),
 			},
+			Github: github{
+				Repositories: []string{""},
+			},
 		}
 
 		file, err := os.Create(fileName)
 		if err != nil {
-			log.Error().Err(err).Msg("Error creating config.yml")
+			log.Error().Err(err).Msg("Error creating config.toml")
 			return err
 		}
 
 		err = toml.NewEncoder(file).Encode(Config)
 		if err != nil {
-			log.Error().Err(err).Msg("Error encoding config.yml")
+			log.Error().Err(err).Msg("Error encoding config.toml")
 			return err
 		}
 
-		log.Info().Msg("generated new config.yml")
-		IsReady = true
+		log.Info().Msg("generated new config.toml")
+		log.Info().Msg("quitting application for user configuration...")
+
+		os.Exit(0)
 	} else {
 		file, err := os.ReadFile(fileName)
 		if err != nil {
-			log.Error().Err(err).Msg("Error opening econfig.toml")
+			log.Error().Err(err).Msg("Error opening config.toml")
 			return err
 		}
 
@@ -92,7 +97,7 @@ func Init() error {
 			return err
 		}
 
-		log.Info().Msg("loaded econfig.toml")
+		log.Info().Msg("loaded config.toml")
 		IsReady = true
 	}
 
