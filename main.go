@@ -71,14 +71,17 @@ func main() {
 	r.Use(middleware.Recoverer)
 
 	// Define routes
-	r.Route("/release", func(r chi.Router) {
-		r.Get("/latest", release.GetLatestRelease)
-		r.Get("/{tag}", release.GetVersionRelease)
-		r.Get("/multiple", release.GetMultipleReleases)
-	})
-	r.Route("/download", func(r chi.Router) {
-		r.Get("/{platform}", release.DownloadPlatform)
-		r.Get("/", release.Download)
+	// All routes that are related to repositories
+	r.Route("/{repository}", func(r chi.Router) {
+		r.Route("/release", func(r chi.Router) {
+			r.Get("/latest", release.GetLatestRelease)
+			r.Get("/{tag}", release.GetVersionRelease)
+			r.Get("/multiple", release.GetMultipleReleases)
+		})
+		r.Route("/download", func(r chi.Router) {
+			r.Get("/{platform}", release.DownloadPlatform)
+			r.Get("/", release.Download)
+		})
 	})
 
 	server := &http.Server{Addr: "0.0.0.0:3000", Handler: r}
