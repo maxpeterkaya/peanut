@@ -6,7 +6,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/joho/godotenv"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
+	chiprometheus "github.com/toshi0607/chi-prometheus"
 	"net/http"
 	"os"
 	"os/signal"
@@ -64,13 +66,18 @@ func init() {
 func main() {
 	r := chi.NewRouter()
 
+	m := chiprometheus.New("peanut")
+	m.MustRegisterDefault()
+
 	// Initialize middleware
+	r.Use(m.Handler)
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
 	// Define routes
+	r.Handle("/metrics", promhttp.Handler())
 	// All routes that are related to repositories
 	r.Route("/{repository}", func(r chi.Router) {
 		r.Route("/release", func(r chi.Router) {
