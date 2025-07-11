@@ -12,11 +12,12 @@ import (
 )
 
 type ConfigStruct struct {
-	Version  string       `toml:"version"`
-	Admin    admin        `toml:"admin"`
-	Common   commonStruct `toml:"common"`
-	Database database     `toml:"database"`
-	Github   github       `toml:"github"`
+	Version       string        `toml:"version"`
+	Admin         admin         `toml:"admin"`
+	Common        commonStruct  `toml:"common"`
+	Database      database      `toml:"database"`
+	Github        github        `toml:"github"`
+	Authorization authorization `toml:"authorization"`
 }
 
 type database struct {
@@ -31,6 +32,12 @@ type github struct {
 	Token        string   `toml:"token"`
 	Repositories []string `toml:"repositories"`
 	Owner        string   `toml:"owner"`
+}
+
+type authorization struct {
+	PrometheusToken  string `toml:"prometheus_token"`
+	GithubToken      string `toml:"github_token"`
+	HealthCheckToken string `toml:"health_check_token"`
 }
 
 type admin struct {
@@ -78,6 +85,11 @@ func Init() error {
 			},
 			Github: github{
 				Repositories: []string{""},
+			},
+			Authorization: authorization{
+				PrometheusToken:  common.GeneratePassword(32),
+				GithubToken:      common.GeneratePassword(32),
+				HealthCheckToken: common.GeneratePassword(32),
 			},
 		}
 
@@ -140,6 +152,17 @@ func Init() error {
 		// So for some reason the toml encoder doesn't accept os.Open but it accepts os.Create file descriptor
 
 		Config.Version = fmt.Sprintf("%s-%s", buildinfo.Version, buildinfo.Commit)
+
+		// Check that tokens have been created
+		if Config.Authorization.PrometheusToken == "" {
+			Config.Authorization.PrometheusToken = common.GeneratePassword(32)
+		}
+		if Config.Authorization.GithubToken == "" {
+			Config.Authorization.GithubToken = common.GeneratePassword(32)
+		}
+		if Config.Authorization.HealthCheckToken == "" {
+			Config.Authorization.HealthCheckToken = common.GeneratePassword(32)
+		}
 
 		file, err = os.Create(fileName)
 		if err != nil {
