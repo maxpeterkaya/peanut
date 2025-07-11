@@ -1,6 +1,10 @@
 package common
 
-import "math/rand"
+import (
+	"crypto/rand"
+	"github.com/rs/zerolog/log"
+	"math/big"
+)
 
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 var letterNumbers = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
@@ -10,17 +14,25 @@ func GenerateUsername() string {
 }
 
 func GeneratePassword(n int) string {
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
+	s := make([]rune, n)
+	for i := range s {
+		idx, err := rand.Int(rand.Reader, big.NewInt(int64(len(letters))))
+		if err != nil {
+			log.Fatal().Err(err).Msg("failed to generate password")
+		}
+		s[i] = letters[idx.Int64()]
 	}
-	return string(b)
+	return string(s)
 }
 
 func GenerateKey(n int) string {
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letterNumbers[rand.Intn(len(letterNumbers))]
+	s := make([]rune, n)
+	for i := range s {
+		idx, err := rand.Int(rand.Reader, big.NewInt(int64(len(letterNumbers))))
+		if err != nil {
+			log.Fatal().Err(err).Msg("failed to generate key")
+		}
+		s[i] = letterNumbers[idx.Int64()]
 	}
-	return string(b)
+	return string(s)
 }
