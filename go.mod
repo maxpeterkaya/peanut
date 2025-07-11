@@ -8,7 +8,9 @@ require (
 	github.com/google/go-github/v67 v67.0.0
 	github.com/joho/godotenv v1.5.1
 	github.com/maxpeterkaya/peanut/common v0.0.0-00010101000000-000000000000
+	github.com/prometheus/client_golang v1.16.0
 	github.com/rs/zerolog v1.34.0
+	github.com/toshi0607/chi-prometheus v0.1.4
 )
 
 require (
@@ -19,13 +21,11 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
-	github.com/prometheus/client_golang v1.16.0 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.42.0 // indirect
 	github.com/prometheus/procfs v0.10.1 // indirect
-	github.com/toshi0607/chi-prometheus v0.1.4 // indirect
 	golang.org/x/sys v0.12.0 // indirect
-	google.golang.org/protobuf v1.30.0 // indirect
+	google.golang.org/protobuf v1.33.0 // indirect
 )
 
 replace github.com/maxpeterkaya/peanut/common => ./common
