@@ -1,14 +1,18 @@
 package config
 
 import (
+	"fmt"
 	"github.com/BurntSushi/toml"
 	"github.com/maxpeterkaya/peanut/common"
 	"github.com/rs/zerolog/log"
+	"io"
 	"os"
+	"peanut/internal/buildinfo"
 	"strconv"
 )
 
 type ConfigStruct struct {
+	Version  string       `toml:"version"`
 	Admin    admin        `toml:"admin"`
 	Common   commonStruct `toml:"common"`
 	Database database     `toml:"database"`
@@ -36,6 +40,11 @@ type admin struct {
 
 type commonStruct struct {
 	EncryptionKey string `toml:"encryption_key"`
+
+	// Options if certain API endpoints should have authentication
+	AuthPrometheus    bool `toml:"auth_prometheus"`
+	AuthHealthChek    bool `toml:"auth_health_check"`
+	AuthGithubMetrics bool `toml:"auth_github_metrics"`
 }
 
 var (
@@ -62,7 +71,10 @@ func Init() error {
 				Pass: getEnv("ADMIN_PASS", common.GeneratePassword(10)),
 			},
 			Common: commonStruct{
-				EncryptionKey: getEnv("ENCRYPT_KEY", common.GenerateKey(32)),
+				EncryptionKey:     getEnv("ENCRYPT_KEY", common.GenerateKey(32)),
+				AuthPrometheus:    false,
+				AuthHealthChek:    false,
+				AuthGithubMetrics: false,
 			},
 			Github: github{
 				Repositories: []string{""},
@@ -74,6 +86,7 @@ func Init() error {
 			log.Error().Err(err).Msg("Error creating config.toml")
 			return err
 		}
+		defer file.Close()
 
 		err = toml.NewEncoder(file).Encode(Config)
 		if err != nil {
@@ -99,6 +112,49 @@ func Init() error {
 
 		log.Info().Msg("loaded config.toml")
 		IsReady = true
+	}
+
+	if Config.Version != fmt.Sprintf("%s-%s", buildinfo.Version, buildinfo.Commit) {
+		log.Info().Msg("updating config.toml to current schema...")
+
+		backup, err := os.Create("backup-" + fileName)
+		if err != nil {
+			log.Error().Err(err).Msg("Error creating backup-" + fileName)
+			return err
+		}
+		defer backup.Close()
+
+		file, err := os.Open(fileName)
+		if err != nil {
+			log.Error().Err(err).Msg("Error opening config.toml")
+			return err
+		}
+		defer file.Close()
+
+		_, err = io.Copy(backup, file)
+		if err != nil {
+			log.Error().Err(err).Msg("Error copying config.toml")
+			return err
+		}
+
+		// So for some reason the toml encoder doesn't accept os.Open but it accepts os.Create file descriptor
+
+		Config.Version = fmt.Sprintf("%s-%s", buildinfo.Version, buildinfo.Commit)
+
+		file, err = os.Create(fileName)
+		if err != nil {
+			log.Error().Err(err).Msg("Error opening config.toml")
+			return err
+		}
+		defer file.Close()
+
+		err = toml.NewEncoder(file).Encode(Config)
+		if err != nil {
+			log.Error().Err(err).Msg("Error encoding config.toml")
+			return err
+		}
+
+		log.Info().Msg("updated config.toml to latest schema.")
 	}
 
 	return nil
