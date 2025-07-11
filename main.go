@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -18,6 +19,7 @@ import (
 	"peanut/internal/cron"
 	"peanut/internal/github"
 	"peanut/internal/routes/release"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -73,7 +75,7 @@ func main() {
 	r.Use(middleware.Recoverer)
 
 	// Define routes
-	r.Handle("/metrics", promhttp.Handler())
+	r.Handle("/metrics", basicAuth(promhttp.Handler(), "prometheus", config.Config.Authorization.PrometheusToken))
 	// All routes that are related to repositories
 	r.Route("/{repository}", func(r chi.Router) {
 		r.Route("/release", func(r chi.Router) {
@@ -117,4 +119,37 @@ func main() {
 	}
 
 	<-serverCtx.Done()
+}
+
+func basicAuth(h http.Handler, route, token string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Ensure that authorization is actually enabled before proceeding
+		if route == "prometheus" && !config.Config.Common.AuthPrometheus {
+			h.ServeHTTP(w, r)
+		} else if route == "github" && !config.Config.Common.AuthGithubMetrics {
+			h.ServeHTTP(w, r)
+		} else if route == "health" && !config.Config.Common.AuthHealthChek {
+			h.ServeHTTP(w, r)
+		}
+
+		// Check authentication now...
+		auth := r.Header.Get("Authorization")
+		if !checkAuth(auth, token) {
+			w.WriteHeader(401)
+			return
+		}
+		h.ServeHTTP(w, r)
+	})
+}
+
+func checkAuth(auth string, token string) bool {
+	prefix := "Basic "
+	if !strings.HasPrefix(auth, prefix) {
+		return false
+	}
+	payload, err := base64.StdEncoding.DecodeString(auth[len(prefix):])
+	if err != nil {
+		return false
+	}
+	return string(payload) == token
 }
