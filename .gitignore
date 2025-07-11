@@ -2,3 +2,4 @@ config.toml
 .idea
 .vscode
 /bin
+backup-config.toml
