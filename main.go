@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"peanut/internal/buildinfo"
 	"peanut/internal/cache"
 	"peanut/internal/config"
 	"peanut/internal/cron"
@@ -21,14 +22,8 @@ import (
 	"time"
 )
 
-var (
-	version = "dev"
-	commit  = "none"
-	date    = "unknown"
-)
-
 func init() {
-	log.Info().Str("version", version).Str("commit", commit).Str("date", date).Msg("")
+	log.Info().Str("version", buildinfo.Version).Str("commit", buildinfo.Commit).Str("date", buildinfo.BuildTime).Msg("")
 
 	if err := godotenv.Load(); err != nil {
 		log.Error().Err(err).Msg("Error loading .env file")
@@ -37,6 +32,7 @@ func init() {
 	log.Info().Msg("initializing config...")
 	err := config.Init()
 	if err != nil {
+		os.Exit(1)
 		return
 	}
 	log.Info().Msg("initialized config.")
