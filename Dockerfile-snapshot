@@ -1,0 +1,21 @@
+FROM golang:1.24 AS builder
+
+# define the build arguments
+ARG GIT_VERSION
+ARG GIT_COMMIT
+ARG GIT_DATE
+
+ENV GIT_VERSION=${GIT_VERSION}
+ENV GIT_COMMIT=${GIT_COMMIT}
+ENV GIT_DATE=${GIT_DATE}
+
+# build everything
+COPY . /.
+RUN CGO_ENABLED=0 go build -o /peanut -ldflags="-X 'main.version=${GIT_VERSION}' -X 'main.commit=${GIT_COMMIT}' -X 'main.date=${GIT_DATE}'" /.
+
+FROM cgr.dev/chainguard/static@sha256:288b818c1b3dd89776d176f07f5f671b118fe836c4d80ec2cc3299b596fe71b7
+
+# Copy binary
+COPY --from=builder /peanut /usr/bin/
+
+ENTRYPOINT ["/usr/bin/peanut"]
