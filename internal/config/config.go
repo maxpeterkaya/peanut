@@ -28,6 +28,10 @@ type database struct {
 	Port int    `toml:"port"`
 }
 
+func (d *database) URL() string {
+	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable", d.User, d.Pass, d.Host, d.Port, d.Name)
+}
+
 type github struct {
 	Token        string   `toml:"token"`
 	Repositories []string `toml:"repositories"`
