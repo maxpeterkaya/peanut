@@ -52,6 +52,8 @@ type admin struct {
 type commonStruct struct {
 	EncryptionKey string `toml:"encryption_key"`
 
+	EnableDatabase bool `toml:"enable_database"`
+
 	// Options if certain API endpoints should have authentication
 	AuthPrometheus    bool `toml:"auth_prometheus"`
 	AuthHealthChek    bool `toml:"auth_health_check"`
@@ -86,6 +88,8 @@ func Init() error {
 				AuthPrometheus:    false,
 				AuthHealthChek:    false,
 				AuthGithubMetrics: false,
+
+				EnableDatabase: false,
 			},
 			Github: github{
 				Repositories: []string{""},
