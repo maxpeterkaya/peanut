@@ -17,6 +17,7 @@ import (
 	"peanut/internal/cache"
 	"peanut/internal/config"
 	"peanut/internal/cron"
+	"peanut/internal/database"
 	"peanut/internal/github"
 	"peanut/internal/routes/release"
 	"strings"
@@ -59,6 +60,22 @@ func init() {
 		return
 	}
 	log.Info().Msg("initialized cron.")
+
+	if config.Config.Common.EnableDatabase {
+		log.Info().Msg("initializing database...")
+		err = database.Init()
+		if err != nil {
+			return
+		}
+		log.Info().Msg("initialized database.")
+
+		log.Info().Msg("migrating database...")
+		err = database.Migrate()
+		if err != nil {
+			return
+		}
+		log.Info().Msg("migrate complete")
+	}
 }
 
 func main() {
@@ -110,6 +127,7 @@ func main() {
 		if err != nil {
 			log.Fatal().Err(err)
 		}
+		database.Close()
 		serverStopCtx()
 	}()
 
