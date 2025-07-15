@@ -21,6 +21,13 @@ builds:
       - amd64
       - arm
       - arm64
+    goarm:
+      - 6
+      - 7
+  - ldflags:
+    - -X "peanut/internal/buildinfo.Version={{.Version}}"
+    - -X "peanut/internal/buildinfo.Commit={{.Commit}}"
+    - -X "peanut/internal/buildinfo.BuildTime={{.Date}}"
 
 dockers:
   - image_templates:
