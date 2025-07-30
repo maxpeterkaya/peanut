@@ -10,46 +10,49 @@ import (
 
 type Asset struct {
 	ID            pgtype.Int4
-	Apiurl        pgtype.Text
+	ApiUrl        pgtype.Text
 	Url           pgtype.Text
 	Name          pgtype.Text
-	Contentlength pgtype.Int4
-	Downloadcount pgtype.Int4
-	Viewcount     pgtype.Int4
-	Createdat     pgtype.Timestamp
-	Updatedat     pgtype.Timestamp
-	Uploadedat    pgtype.Timestamp
+	ContentLength pgtype.Int4
+	DownloadCount pgtype.Int4
+	ViewCount     pgtype.Int4
+	CreatedAt     pgtype.Timestamp
+	UpdatedAt     pgtype.Timestamp
+	UploadedAt    pgtype.Timestamp
+	ReleaseID     pgtype.Int4
 }
 
 type Release struct {
-	ID              int32
+	ID              pgtype.Int4
 	Name            pgtype.Text
-	Tagname         pgtype.Text
+	TagName         pgtype.Text
 	Body            pgtype.Text
-	Draft           pgtype.Bool
-	Prerelease      pgtype.Bool
-	Createdat       pgtype.Timestamp
-	Publishedat     pgtype.Timestamp
-	Authorname      pgtype.Text
-	Authorid        pgtype.Text
-	Authoravatarurl pgtype.Text
+	IsDraft         pgtype.Bool
+	IsPrerelease    pgtype.Bool
+	CreatedAt       pgtype.Timestamp
+	PublishedAt     pgtype.Timestamp
+	AuthorName      pgtype.Text
+	AuthorID        pgtype.Text
+	AuthorAvatarUrl pgtype.Text
+	RepositoryID    pgtype.Int4
 }
 
 type Repository struct {
-	ID        pgtype.UUID
+	ID        pgtype.Int4
+	OwnerID   pgtype.Int4
 	Owner     pgtype.Text
 	Name      pgtype.Text
 	Token     pgtype.Text
-	Isprivate pgtype.Bool
-	Createdat pgtype.Timestamp
-	Updatedat pgtype.Timestamp
+	IsPrivate pgtype.Bool
+	CreatedAt pgtype.Timestamp
+	UpdatedAt pgtype.Timestamp
 }
 
 type User struct {
-	ID          pgtype.UUID
+	ID          pgtype.Int4
 	Username    pgtype.Text
-	Displayname pgtype.Text
-	Passhash    pgtype.Text
-	Createdat   pgtype.Timestamp
-	Updatedat   pgtype.Timestamp
+	DisplayName pgtype.Text
+	PassHash    pgtype.Text
+	CreatedAt   pgtype.Timestamp
+	UpdatedAt   pgtype.Timestamp
 }
