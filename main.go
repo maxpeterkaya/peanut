@@ -90,6 +90,7 @@ func main() {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(middleware.Heartbeat("/health"))
 
 	// Define routes
 	r.Handle("/metrics", basicAuth(promhttp.Handler(), "prometheus", config.Config.Authorization.PrometheusToken))
