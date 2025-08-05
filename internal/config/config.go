@@ -7,6 +7,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"io"
 	"os"
+	"path"
 	"peanut/internal/buildinfo"
 	"strconv"
 )
@@ -61,14 +62,16 @@ type commonStruct struct {
 }
 
 var (
-	Config  *ConfigStruct
-	IsReady bool
+	Config      *ConfigStruct
+	IsReady     bool
+	IsContainer bool
 )
 
 func Init() error {
 	IsReady = false
 	fileName := "config.toml"
-	exists := common.Exists(fileName)
+	IsContainer = getEnvAsBool("IS_CONTAINER", false)
+	exists := common.Exists(configFolder(fileName))
 
 	if !exists {
 		Config = &ConfigStruct{
@@ -101,7 +104,7 @@ func Init() error {
 			},
 		}
 
-		file, err := os.Create(fileName)
+		file, err := os.Create(configFolder(fileName))
 		if err != nil {
 			log.Error().Err(err).Msg("Error creating config.toml")
 			return err
@@ -119,7 +122,7 @@ func Init() error {
 
 		os.Exit(0)
 	} else {
-		file, err := os.ReadFile(fileName)
+		file, err := os.ReadFile(configFolder(fileName))
 		if err != nil {
 			log.Error().Err(err).Msg("Error opening config.toml")
 			return err
@@ -137,14 +140,14 @@ func Init() error {
 	if Config.Version != fmt.Sprintf("%s-%s", buildinfo.Version, buildinfo.Commit) {
 		log.Info().Msg("updating config.toml to current schema...")
 
-		backup, err := os.Create("backup-" + fileName)
+		backup, err := os.Create(configFolder("backup-" + fileName))
 		if err != nil {
 			log.Error().Err(err).Msg("Error creating backup-" + fileName)
 			return err
 		}
 		defer backup.Close()
 
-		file, err := os.Open(fileName)
+		file, err := os.Open(configFolder(fileName))
 		if err != nil {
 			log.Error().Err(err).Msg("Error opening config.toml")
 			return err
@@ -172,7 +175,7 @@ func Init() error {
 			Config.Authorization.HealthCheckToken = common.GeneratePassword(32)
 		}
 
-		file, err = os.Create(fileName)
+		file, err = os.Create(configFolder(fileName))
 		if err != nil {
 			log.Error().Err(err).Msg("Error opening config.toml")
 			return err
@@ -215,4 +218,12 @@ func getEnvAsBool(name string, defaultVal bool) bool {
 	}
 
 	return defaultVal
+}
+
+func configFolder(fileName string) string {
+	if IsContainer {
+		return path.Clean("/config/" + fileName)
+	} else {
+		return path.Clean(fileName)
+	}
 }
