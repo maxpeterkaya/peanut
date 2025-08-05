@@ -1,4 +1,7 @@
-FROM cgr.dev/chainguard/static@sha256:288b818c1b3dd89776d176f07f5f671b118fe836c4d80ec2cc3299b596fe71b7
+FROM scratch
+
+# set env to tell the binary to use absolute paths
+ENV IS_CONTAINER=true
 
 COPY peanut /usr/bin/peanut
 
