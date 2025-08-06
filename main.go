@@ -4,12 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-	"github.com/joho/godotenv"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/rs/zerolog/log"
-	chiprometheus "github.com/toshi0607/chi-prometheus"
 	"net/http"
 	"os"
 	"os/signal"
@@ -23,6 +17,13 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/joho/godotenv"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/rs/zerolog/log"
+	chiprometheus "github.com/toshi0607/chi-prometheus"
 )
 
 func init() {
@@ -81,11 +82,7 @@ func init() {
 func main() {
 	r := chi.NewRouter()
 
-	m := chiprometheus.New("peanut")
-	m.MustRegisterDefault()
-
 	// Initialize middleware
-	r.Use(m.Handler)
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
@@ -93,7 +90,14 @@ func main() {
 	r.Use(middleware.Heartbeat("/health"))
 
 	// Define routes
-	r.Handle("/metrics", basicAuth(promhttp.Handler(), "prometheus", config.Config.Authorization.PrometheusToken))
+	if config.Config.Common.EnablePrometheus {
+		m := chiprometheus.New("peanut")
+		m.MustRegisterDefault()
+
+		r.Use(m.Handler)
+
+		r.Handle("/metrics", basicAuth(promhttp.Handler(), "prometheus", config.Config.Authorization.PrometheusToken))
+	}
 	// All routes that are related to repositories
 	r.Route("/{repository}", func(r chi.Router) {
 		r.Route("/release", func(r chi.Router) {
