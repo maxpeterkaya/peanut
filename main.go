@@ -13,6 +13,7 @@ import (
 	"peanut/internal/cron"
 	"peanut/internal/database"
 	"peanut/internal/github"
+	"peanut/internal/metrics"
 	"peanut/internal/routes/release"
 	"strings"
 	"syscall"
@@ -21,6 +22,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/joho/godotenv"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
 	chiprometheus "github.com/toshi0607/chi-prometheus"
@@ -91,6 +93,16 @@ func main() {
 
 	// Define routes
 	if config.Config.Common.EnablePrometheus {
+		if config.Config.Common.EnableGithubMetrics {
+			prometheus.MustRegister(
+				metrics.TotalAssets,
+				metrics.TotalRepositories,
+				metrics.TotalDownloads,
+				metrics.TotalReleases,
+				metrics.TotalRequests,
+			)
+		}
+
 		m := chiprometheus.New("peanut")
 		m.MustRegisterDefault()
 
