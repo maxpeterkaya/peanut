@@ -1,7 +1,8 @@
 CREATE TABLE repository
 (
     id         serial PRIMARY KEY,
-    owner_id   int references "user" (id),
+    github_id int UNIQUE NOT NULL,
+    user_id   int references "user" (id),
     owner      text,
     name       text,
     token      text,
@@ -13,6 +14,7 @@ CREATE TABLE repository
 CREATE TABLE release
 (
     id                serial PRIMARY KEY,
+    github_id int UNIQUE NOT NULL,
     name              text,
     tag_name          text,
     body              text,
@@ -29,6 +31,7 @@ CREATE TABLE release
 CREATE TABLE asset
 (
     id             serial PRIMARY KEY,
+    github_id int UNIQUE NOT NULL,
     api_url        text,
     url            text,
     name           text,
