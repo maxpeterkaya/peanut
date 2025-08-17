@@ -50,20 +50,6 @@ func init() {
 	}
 	log.Info().Msg("initialized github client.")
 
-	log.Info().Msg("populating cache...")
-	err = cache.Init()
-	if err != nil {
-		return
-	}
-	log.Info().Msg("populated cache.")
-
-	log.Info().Msg("initializing cron...")
-	err = cron.Init()
-	if err != nil {
-		return
-	}
-	log.Info().Msg("initialized cron.")
-
 	if config.Config.Common.EnableDatabase {
 		log.Info().Msg("initializing database...")
 		err = database.Init()
@@ -79,6 +65,20 @@ func init() {
 		}
 		log.Info().Msg("migrate complete")
 	}
+
+	log.Info().Msg("populating cache...")
+	err = cache.Init()
+	if err != nil {
+		return
+	}
+	log.Info().Msg("populated cache.")
+
+	log.Info().Msg("initializing cron...")
+	err = cron.Init()
+	if err != nil {
+		return
+	}
+	log.Info().Msg("initialized cron.")
 }
 
 func main() {
