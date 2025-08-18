@@ -64,6 +64,13 @@ func init() {
 			return
 		}
 		log.Info().Msg("migrate complete")
+
+		log.Info().Msg("seeding database...")
+		err = database.SeedDB()
+		if err != nil {
+			return
+		}
+		log.Info().Msg("seeding complete")
 	}
 
 	log.Info().Msg("populating cache...")
