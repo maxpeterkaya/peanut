@@ -18,6 +18,10 @@ func GetLatestRelease(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
+	if latest == nil {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 
 	release := repository.Release{
 		Name:         latest.Name,
