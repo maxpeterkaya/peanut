@@ -1,23 +1,28 @@
 package helper
 
 import (
-	"github.com/google/go-github/v67/github"
-	"github.com/rs/zerolog/log"
 	"peanut/internal/cache"
+	"peanut/internal/repository"
 	"strings"
+
+	"github.com/rs/zerolog/log"
 )
 
-func GetPlatformRelease(repo string, platform string) *github.ReleaseAsset {
+func GetPlatformRelease(repo string, platform string) *repository.Asset {
 	latestRelease, err := cache.FindLatest(repo)
 	if err != nil {
 		log.Error().Err(err).Str("repo", repo).Msg("Error finding latest release")
 		return nil
 	}
-	assets := latestRelease.Assets
+	assets, err := cache.FindAssets(latestRelease.ID)
+	if err != nil {
+		log.Error().Err(err).Str("repo", repo).Msg("Error finding assets")
+		return nil
+	}
 
 	for _, asset := range assets {
-		if strings.HasSuffix(strings.ToLower(*asset.Name), strings.ToLower(platform)) {
-			return asset
+		if strings.HasSuffix(strings.ToLower(asset.Name.String), strings.ToLower(platform)) {
+			return &asset
 		}
 	}
 
