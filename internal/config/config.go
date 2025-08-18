@@ -2,14 +2,15 @@ package config
 
 import (
 	"fmt"
-	"github.com/BurntSushi/toml"
-	"github.com/maxpeterkaya/peanut/common"
-	"github.com/rs/zerolog/log"
 	"io"
 	"os"
 	"path"
 	"peanut/internal/buildinfo"
 	"strconv"
+
+	"github.com/BurntSushi/toml"
+	"github.com/maxpeterkaya/peanut/common"
+	"github.com/rs/zerolog/log"
 )
 
 type ConfigStruct struct {
@@ -53,7 +54,9 @@ type admin struct {
 type commonStruct struct {
 	EncryptionKey string `toml:"encryption_key"`
 
-	EnableDatabase bool `toml:"enable_database"`
+	EnableDatabase      bool `toml:"enable_database"`
+	EnablePrometheus    bool `toml:"enable_prometheus"`
+	EnableGithubMetrics bool `toml:"enable_github_metrics"`
 
 	// Options if certain API endpoints should have authentication
 	AuthPrometheus    bool `toml:"auth_prometheus"`
@@ -88,11 +91,13 @@ func Init() error {
 			},
 			Common: commonStruct{
 				EncryptionKey:     getEnv("ENCRYPT_KEY", common.GenerateKey(32)),
-				AuthPrometheus:    false,
-				AuthHealthChek:    false,
-				AuthGithubMetrics: false,
+				AuthPrometheus:    getEnvAsBool("AUTH_PROMETHEUS", false),
+				AuthHealthChek:    getEnvAsBool("AUTH_HEALTH_CHECK", false),
+				AuthGithubMetrics: getEnvAsBool("AUTH_GITHUB_METRICS", false),
 
-				EnableDatabase: false,
+				EnableDatabase:      getEnvAsBool("ENABLE_DATABASE", false),
+				EnablePrometheus:    getEnvAsBool("ENABLE_PROMETHEUS", false),
+				EnableGithubMetrics: getEnvAsBool("ENABLE_GITHUB_METRICS", false),
 			},
 			Github: github{
 				Repositories: []string{""},
