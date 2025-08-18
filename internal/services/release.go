@@ -79,11 +79,12 @@ func GithubReleasesToRepoReleases(releases []*github.RepositoryRelease) []reposi
 		array[i] = repository.Release{
 			ID:              int32(*release.ID),
 			GithubID:        int32(*release.ID),
+			TagName:         pgtype.Text{Valid: true, String: *release.TagName},
 			Name:            pgtype.Text{Valid: true, String: *release.TagName},
 			Body:            pgtype.Text{Valid: true, String: *release.Body},
 			IsDraft:         pgtype.Bool{Valid: true, Bool: *release.Draft},
 			IsPrerelease:    pgtype.Bool{Valid: true, Bool: *release.Prerelease},
-			PublishedAt:     pgtype.Timestamp{Time: release.PublishedAt.Time},
+			PublishedAt:     pgtype.Timestamp{Time: release.PublishedAt.Time, Valid: true},
 			AuthorName:      pgtype.Text{Valid: true, String: authorName},
 			AuthorID:        pgtype.Text{Valid: true, String: strconv.FormatInt(*release.Author.ID, 10)},
 			AuthorAvatarUrl: pgtype.Text{Valid: true, String: *release.Author.AvatarURL},
