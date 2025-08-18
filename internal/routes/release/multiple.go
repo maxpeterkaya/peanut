@@ -22,6 +22,10 @@ func GetMultipleReleases(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
+	if len(rl) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 
 	maxLength := len(rl)
 
