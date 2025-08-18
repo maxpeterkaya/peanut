@@ -2,11 +2,12 @@ package release
 
 import (
 	"encoding/json"
-	"github.com/go-chi/chi/v5"
-	"github.com/rs/zerolog/log"
 	"net/http"
 	"peanut/internal/cache"
-	"peanut/internal/github"
+	"peanut/internal/repository"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/rs/zerolog/log"
 )
 
 func GetLatestRelease(w http.ResponseWriter, r *http.Request) {
@@ -18,15 +19,15 @@ func GetLatestRelease(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	release := github.Release{
-		Name:        latest.Name,
-		Body:        latest.Body,
-		TagName:     latest.TagName,
-		Draft:       latest.Draft,
-		Prerelease:  latest.Prerelease,
-		CreatedAt:   latest.CreatedAt,
-		PublishedAt: latest.PublishedAt,
-		AuthorName:  latest.Author.Name,
+	release := repository.Release{
+		Name:         latest.Name,
+		Body:         latest.Body,
+		TagName:      latest.TagName,
+		IsDraft:      latest.IsDraft,
+		IsPrerelease: latest.IsPrerelease,
+		CreatedAt:    latest.CreatedAt,
+		PublishedAt:  latest.PublishedAt,
+		AuthorName:   latest.AuthorName,
 	}
 
 	err = json.NewEncoder(w).Encode(release)
