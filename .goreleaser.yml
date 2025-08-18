@@ -5,7 +5,12 @@ before:
     - go mod tidy
 
 archives:
-  - name_template: "{{ .ProjectName }}_{{ .Version }}.{{ .Os }}-{{ .Arch }}"
+  - id: binary
+    format: binary
+    name_template: "peanut_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}{{ with .Mips }}_{{ . }}{{ end }}{{ if not (eq .Amd64 \"v1\") }}{{ .Amd64 }}{{ end }}"
+
+  - id: tar
+    format: tar.gz
 
 builds:
   - env:
@@ -24,10 +29,10 @@ builds:
     goarm:
       - 6
       - 7
-  - ldflags:
-    - -X "peanut/internal/buildinfo.Version={{.Version}}"
-    - -X "peanut/internal/buildinfo.Commit={{.Commit}}"
-    - -X "peanut/internal/buildinfo.BuildTime={{.Date}}"
+    ldflags:
+      - -X "peanut/internal/buildinfo.Version={{.Version}}"
+      - -X "peanut/internal/buildinfo.Commit={{.Commit}}"
+      - -X "peanut/internal/buildinfo.BuildTime={{.Date}}"
 
 dockers:
   - image_templates:
