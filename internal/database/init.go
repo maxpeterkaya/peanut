@@ -38,8 +38,3 @@ func Init() error {
 
 	return nil
 }
-
-func Close() {
-	log.Info().Msg("closing database connection...")
-	DB.Close()
-}
