@@ -9,7 +9,8 @@ import (
 )
 
 type Asset struct {
-	ID            pgtype.Int4
+	ID            int32
+	GithubID      int32
 	ApiUrl        pgtype.Text
 	Url           pgtype.Text
 	Name          pgtype.Text
@@ -23,7 +24,8 @@ type Asset struct {
 }
 
 type Release struct {
-	ID              pgtype.Int4
+	ID              int32
+	GithubID        int32
 	Name            pgtype.Text
 	TagName         pgtype.Text
 	Body            pgtype.Text
@@ -38,8 +40,9 @@ type Release struct {
 }
 
 type Repository struct {
-	ID        pgtype.Int4
-	OwnerID   pgtype.Int4
+	ID        int32
+	GithubID  int32
+	UserID    pgtype.Int4
 	Owner     pgtype.Text
 	Name      pgtype.Text
 	Token     pgtype.Text
@@ -49,7 +52,7 @@ type Repository struct {
 }
 
 type User struct {
-	ID          pgtype.Int4
+	ID          int32
 	Username    pgtype.Text
 	DisplayName pgtype.Text
 	PassHash    pgtype.Text

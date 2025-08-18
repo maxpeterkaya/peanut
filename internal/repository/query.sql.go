@@ -12,21 +12,18 @@ import (
 )
 
 const createAsset = `-- name: CreateAsset :one
-INSERT INTO asset (
-  api_url,
-  url,
-  name,
-  content_length,
-  download_count,
-  view_count,
-  created_at,
-  updated_at,
-  uploaded_at,
-  release_id
-) VALUES (
-  $1, $2, $3, $4, $5, $6, NOW(), NOW(), NOW(), $7
-)
-    RETURNING id, api_url, url, name, content_length, download_count, view_count, created_at, updated_at, uploaded_at, release_id
+INSERT INTO asset (api_url,
+                   url,
+                   name,
+                   content_length,
+                   download_count,
+                   view_count,
+                   created_at,
+                   updated_at,
+                   uploaded_at,
+                   release_id,
+                   github_id)
+VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), $7, $8, $9) RETURNING id, github_id, api_url, url, name, content_length, download_count, view_count, created_at, updated_at, uploaded_at, release_id
 `
 
 type CreateAssetParams struct {
@@ -36,7 +33,9 @@ type CreateAssetParams struct {
 	ContentLength pgtype.Int4
 	DownloadCount pgtype.Int4
 	ViewCount     pgtype.Int4
+	UploadedAt    pgtype.Timestamp
 	ReleaseID     pgtype.Int4
+	GithubID      int32
 }
 
 func (q *Queries) CreateAsset(ctx context.Context, arg CreateAssetParams) (Asset, error) {
@@ -47,11 +46,14 @@ func (q *Queries) CreateAsset(ctx context.Context, arg CreateAssetParams) (Asset
 		arg.ContentLength,
 		arg.DownloadCount,
 		arg.ViewCount,
+		arg.UploadedAt,
 		arg.ReleaseID,
+		arg.GithubID,
 	)
 	var i Asset
 	err := row.Scan(
 		&i.ID,
+		&i.GithubID,
 		&i.ApiUrl,
 		&i.Url,
 		&i.Name,
@@ -67,22 +69,19 @@ func (q *Queries) CreateAsset(ctx context.Context, arg CreateAssetParams) (Asset
 }
 
 const createRelease = `-- name: CreateRelease :one
-INSERT INTO release (
-  name,
-  tag_name,
-  body,
-  is_draft,
-  is_prerelease,
-  created_at,
-  published_at,
-  author_name,
-  author_id,
-  author_avatar_url,
-  repository_id
-) VALUES (
-  $1, $2, $3, $4, $5, NOW(), NOW(), $6, $7, $8, $9
-)
-RETURNING id, name, tag_name, body, is_draft, is_prerelease, created_at, published_at, author_name, author_id, author_avatar_url, repository_id
+INSERT INTO release (name,
+                     tag_name,
+                     body,
+                     is_draft,
+                     is_prerelease,
+                     created_at,
+                     published_at,
+                     author_name,
+                     author_id,
+                     author_avatar_url,
+                     repository_id,
+                     github_id)
+VALUES ($1, $2, $3, $4, $5, NOW(), $6, $7, $8, $9, $10, $11) RETURNING id, github_id, name, tag_name, body, is_draft, is_prerelease, created_at, published_at, author_name, author_id, author_avatar_url, repository_id
 `
 
 type CreateReleaseParams struct {
@@ -91,10 +90,12 @@ type CreateReleaseParams struct {
 	Body            pgtype.Text
 	IsDraft         pgtype.Bool
 	IsPrerelease    pgtype.Bool
+	PublishedAt     pgtype.Timestamp
 	AuthorName      pgtype.Text
 	AuthorID        pgtype.Text
 	AuthorAvatarUrl pgtype.Text
 	RepositoryID    pgtype.Int4
+	GithubID        int32
 }
 
 func (q *Queries) CreateRelease(ctx context.Context, arg CreateReleaseParams) (Release, error) {
@@ -104,14 +105,17 @@ func (q *Queries) CreateRelease(ctx context.Context, arg CreateReleaseParams) (R
 		arg.Body,
 		arg.IsDraft,
 		arg.IsPrerelease,
+		arg.PublishedAt,
 		arg.AuthorName,
 		arg.AuthorID,
 		arg.AuthorAvatarUrl,
 		arg.RepositoryID,
+		arg.GithubID,
 	)
 	var i Release
 	err := row.Scan(
 		&i.ID,
+		&i.GithubID,
 		&i.Name,
 		&i.TagName,
 		&i.Body,
@@ -128,37 +132,40 @@ func (q *Queries) CreateRelease(ctx context.Context, arg CreateReleaseParams) (R
 }
 
 const createRepository = `-- name: CreateRepository :one
-INSERT INTO repository (
-  owner,
-  name,
-  token,
-  is_private,
-  created_at,
-  updated_at
-) VALUES (
-  $1, $2, $3, $4, NOW(), NOW()
-)
-RETURNING id, owner_id, owner, name, token, is_private, created_at, updated_at
+INSERT INTO repository (user_id,
+                        owner,
+                        name,
+                        token,
+                        is_private,
+                        github_id,
+                        created_at,
+                        updated_at)
+VALUES ($1, $2, $3, $4, $5, $6,NOW(), NOW()) RETURNING id, github_id, user_id, owner, name, token, is_private, created_at, updated_at
 `
 
 type CreateRepositoryParams struct {
+	UserID    pgtype.Int4
 	Owner     pgtype.Text
 	Name      pgtype.Text
 	Token     pgtype.Text
 	IsPrivate pgtype.Bool
+	GithubID  int32
 }
 
 func (q *Queries) CreateRepository(ctx context.Context, arg CreateRepositoryParams) (Repository, error) {
 	row := q.db.QueryRow(ctx, createRepository,
+		arg.UserID,
 		arg.Owner,
 		arg.Name,
 		arg.Token,
 		arg.IsPrivate,
+		arg.GithubID,
 	)
 	var i Repository
 	err := row.Scan(
 		&i.ID,
-		&i.OwnerID,
+		&i.GithubID,
+		&i.UserID,
 		&i.Owner,
 		&i.Name,
 		&i.Token,
@@ -170,16 +177,12 @@ func (q *Queries) CreateRepository(ctx context.Context, arg CreateRepositoryPara
 }
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO "user" (
-  username,
-  display_name,
-  pass_hash,
-  created_at,
-  updated_at
-) VALUES (
-  $1, $2, $3, NOW(), NOW()
-)
-RETURNING id, username, display_name, pass_hash, created_at, updated_at
+INSERT INTO "user" (username,
+                    display_name,
+                    pass_hash,
+                    created_at,
+                    updated_at)
+VALUES ($1, $2, $3, NOW(), NOW()) RETURNING id, username, display_name, pass_hash, created_at, updated_at
 `
 
 type CreateUserParams struct {
@@ -203,55 +206,61 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 }
 
 const deleteAsset = `-- name: DeleteAsset :exec
-DELETE FROM asset
+DELETE
+FROM asset
 WHERE id = $1
 `
 
-func (q *Queries) DeleteAsset(ctx context.Context, id pgtype.Int4) error {
+func (q *Queries) DeleteAsset(ctx context.Context, id int32) error {
 	_, err := q.db.Exec(ctx, deleteAsset, id)
 	return err
 }
 
 const deleteRelease = `-- name: DeleteRelease :exec
-DELETE FROM release
+DELETE
+FROM release
 WHERE id = $1
 `
 
-func (q *Queries) DeleteRelease(ctx context.Context, id pgtype.Int4) error {
+func (q *Queries) DeleteRelease(ctx context.Context, id int32) error {
 	_, err := q.db.Exec(ctx, deleteRelease, id)
 	return err
 }
 
 const deleteRepository = `-- name: DeleteRepository :exec
-DELETE FROM repository
+DELETE
+FROM repository
 WHERE id = $1
 `
 
-func (q *Queries) DeleteRepository(ctx context.Context, id pgtype.Int4) error {
+func (q *Queries) DeleteRepository(ctx context.Context, id int32) error {
 	_, err := q.db.Exec(ctx, deleteRepository, id)
 	return err
 }
 
 const deleteUser = `-- name: DeleteUser :exec
-DELETE FROM "user"
+DELETE
+FROM "user"
 WHERE id = $1
 `
 
-func (q *Queries) DeleteUser(ctx context.Context, id pgtype.Int4) error {
+func (q *Queries) DeleteUser(ctx context.Context, id int32) error {
 	_, err := q.db.Exec(ctx, deleteUser, id)
 	return err
 }
 
 const getAsset = `-- name: GetAsset :one
-SELECT id, api_url, url, name, content_length, download_count, view_count, created_at, updated_at, uploaded_at, release_id FROM asset
+SELECT id, github_id, api_url, url, name, content_length, download_count, view_count, created_at, updated_at, uploaded_at, release_id
+FROM asset
 WHERE id = $1 LIMIT 1
 `
 
-func (q *Queries) GetAsset(ctx context.Context, id pgtype.Int4) (Asset, error) {
+func (q *Queries) GetAsset(ctx context.Context, id int32) (Asset, error) {
 	row := q.db.QueryRow(ctx, getAsset, id)
 	var i Asset
 	err := row.Scan(
 		&i.ID,
+		&i.GithubID,
 		&i.ApiUrl,
 		&i.Url,
 		&i.Name,
@@ -266,16 +275,44 @@ func (q *Queries) GetAsset(ctx context.Context, id pgtype.Int4) (Asset, error) {
 	return i, err
 }
 
-const getRelease = `-- name: GetRelease :one
-SELECT id, name, tag_name, body, is_draft, is_prerelease, created_at, published_at, author_name, author_id, author_avatar_url, repository_id FROM release
-WHERE id = $1 LIMIT 1
+const getGithubAsset = `-- name: GetGithubAsset :one
+SELECT id, github_id, api_url, url, name, content_length, download_count, view_count, created_at, updated_at, uploaded_at, release_id
+FROM asset
+WHERE github_id = $1 LIMIT 1
 `
 
-func (q *Queries) GetRelease(ctx context.Context, id pgtype.Int4) (Release, error) {
-	row := q.db.QueryRow(ctx, getRelease, id)
+func (q *Queries) GetGithubAsset(ctx context.Context, githubID int32) (Asset, error) {
+	row := q.db.QueryRow(ctx, getGithubAsset, githubID)
+	var i Asset
+	err := row.Scan(
+		&i.ID,
+		&i.GithubID,
+		&i.ApiUrl,
+		&i.Url,
+		&i.Name,
+		&i.ContentLength,
+		&i.DownloadCount,
+		&i.ViewCount,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.UploadedAt,
+		&i.ReleaseID,
+	)
+	return i, err
+}
+
+const getGithubRelease = `-- name: GetGithubRelease :one
+SELECT id, github_id, name, tag_name, body, is_draft, is_prerelease, created_at, published_at, author_name, author_id, author_avatar_url, repository_id
+FROM release
+WHERE github_id = $1 LIMIT 1
+`
+
+func (q *Queries) GetGithubRelease(ctx context.Context, githubID int32) (Release, error) {
+	row := q.db.QueryRow(ctx, getGithubRelease, githubID)
 	var i Release
 	err := row.Scan(
 		&i.ID,
+		&i.GithubID,
 		&i.Name,
 		&i.TagName,
 		&i.Body,
@@ -291,17 +328,292 @@ func (q *Queries) GetRelease(ctx context.Context, id pgtype.Int4) (Release, erro
 	return i, err
 }
 
-const getRepository = `-- name: GetRepository :one
-SELECT id, owner_id, owner, name, token, is_private, created_at, updated_at FROM repository
+const getGithubReleaseWithAssets = `-- name: GetGithubReleaseWithAssets :one
+SELECT
+    b.id, b.github_id, b.api_url, b.url, b.name, b.content_length, b.download_count, b.view_count, b.created_at, b.updated_at, b.uploaded_at, b.release_id,
+    a.id as release_id,
+    a.github_id as release_github_id,
+    a.name as release_name,
+    a.tag_name as release_tag_name,
+    a.body as release_body,
+    a.is_draft as release_is_draft,
+    a.is_prerelease as release_is_prerelease,
+    a.created_at as release_created_at,
+    a.published_at as release_published_at,
+    a.author_name as release_author_name,
+    a.author_id as release_author_id,
+    a.author_avatar_url as release_author_avatar_url,
+    a.repository_id as release_repository_id
+FROM asset b
+         JOIN release a ON a.id = b.release_id
+WHERE a.id = $1
+`
+
+type GetGithubReleaseWithAssetsRow struct {
+	ID                     int32
+	GithubID               int32
+	ApiUrl                 pgtype.Text
+	Url                    pgtype.Text
+	Name                   pgtype.Text
+	ContentLength          pgtype.Int4
+	DownloadCount          pgtype.Int4
+	ViewCount              pgtype.Int4
+	CreatedAt              pgtype.Timestamp
+	UpdatedAt              pgtype.Timestamp
+	UploadedAt             pgtype.Timestamp
+	ReleaseID              pgtype.Int4
+	ReleaseID_2            int32
+	ReleaseGithubID        int32
+	ReleaseName            pgtype.Text
+	ReleaseTagName         pgtype.Text
+	ReleaseBody            pgtype.Text
+	ReleaseIsDraft         pgtype.Bool
+	ReleaseIsPrerelease    pgtype.Bool
+	ReleaseCreatedAt       pgtype.Timestamp
+	ReleasePublishedAt     pgtype.Timestamp
+	ReleaseAuthorName      pgtype.Text
+	ReleaseAuthorID        pgtype.Text
+	ReleaseAuthorAvatarUrl pgtype.Text
+	ReleaseRepositoryID    pgtype.Int4
+}
+
+func (q *Queries) GetGithubReleaseWithAssets(ctx context.Context, id int32) (GetGithubReleaseWithAssetsRow, error) {
+	row := q.db.QueryRow(ctx, getGithubReleaseWithAssets, id)
+	var i GetGithubReleaseWithAssetsRow
+	err := row.Scan(
+		&i.ID,
+		&i.GithubID,
+		&i.ApiUrl,
+		&i.Url,
+		&i.Name,
+		&i.ContentLength,
+		&i.DownloadCount,
+		&i.ViewCount,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.UploadedAt,
+		&i.ReleaseID,
+		&i.ReleaseID_2,
+		&i.ReleaseGithubID,
+		&i.ReleaseName,
+		&i.ReleaseTagName,
+		&i.ReleaseBody,
+		&i.ReleaseIsDraft,
+		&i.ReleaseIsPrerelease,
+		&i.ReleaseCreatedAt,
+		&i.ReleasePublishedAt,
+		&i.ReleaseAuthorName,
+		&i.ReleaseAuthorID,
+		&i.ReleaseAuthorAvatarUrl,
+		&i.ReleaseRepositoryID,
+	)
+	return i, err
+}
+
+const getGithubRepository = `-- name: GetGithubRepository :one
+SELECT id, github_id, user_id, owner, name, token, is_private, created_at, updated_at
+FROM repository
+WHERE github_id = $1 LIMIT 1
+`
+
+func (q *Queries) GetGithubRepository(ctx context.Context, githubID int32) (Repository, error) {
+	row := q.db.QueryRow(ctx, getGithubRepository, githubID)
+	var i Repository
+	err := row.Scan(
+		&i.ID,
+		&i.GithubID,
+		&i.UserID,
+		&i.Owner,
+		&i.Name,
+		&i.Token,
+		&i.IsPrivate,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getLatestRelease = `-- name: GetLatestRelease :one
+SELECT id, github_id, name, tag_name, body, is_draft, is_prerelease, created_at, published_at, author_name, author_id, author_avatar_url, repository_id
+FROM release
+WHERE repository_id = $1 ORDER BY published_at DESC LIMIT 1
+`
+
+func (q *Queries) GetLatestRelease(ctx context.Context, repositoryID pgtype.Int4) (Release, error) {
+	row := q.db.QueryRow(ctx, getLatestRelease, repositoryID)
+	var i Release
+	err := row.Scan(
+		&i.ID,
+		&i.GithubID,
+		&i.Name,
+		&i.TagName,
+		&i.Body,
+		&i.IsDraft,
+		&i.IsPrerelease,
+		&i.CreatedAt,
+		&i.PublishedAt,
+		&i.AuthorName,
+		&i.AuthorID,
+		&i.AuthorAvatarUrl,
+		&i.RepositoryID,
+	)
+	return i, err
+}
+
+const getRelease = `-- name: GetRelease :one
+SELECT id, github_id, name, tag_name, body, is_draft, is_prerelease, created_at, published_at, author_name, author_id, author_avatar_url, repository_id
+FROM release
 WHERE id = $1 LIMIT 1
 `
 
-func (q *Queries) GetRepository(ctx context.Context, id pgtype.Int4) (Repository, error) {
+func (q *Queries) GetRelease(ctx context.Context, id int32) (Release, error) {
+	row := q.db.QueryRow(ctx, getRelease, id)
+	var i Release
+	err := row.Scan(
+		&i.ID,
+		&i.GithubID,
+		&i.Name,
+		&i.TagName,
+		&i.Body,
+		&i.IsDraft,
+		&i.IsPrerelease,
+		&i.CreatedAt,
+		&i.PublishedAt,
+		&i.AuthorName,
+		&i.AuthorID,
+		&i.AuthorAvatarUrl,
+		&i.RepositoryID,
+	)
+	return i, err
+}
+
+const getReleaseVersion = `-- name: GetReleaseVersion :one
+SELECT id, github_id, name, tag_name, body, is_draft, is_prerelease, created_at, published_at, author_name, author_id, author_avatar_url, repository_id
+FROM release
+WHERE tag_name = $1 AND repository_id = $2 LIMIT 1
+`
+
+type GetReleaseVersionParams struct {
+	TagName      pgtype.Text
+	RepositoryID pgtype.Int4
+}
+
+func (q *Queries) GetReleaseVersion(ctx context.Context, arg GetReleaseVersionParams) (Release, error) {
+	row := q.db.QueryRow(ctx, getReleaseVersion, arg.TagName, arg.RepositoryID)
+	var i Release
+	err := row.Scan(
+		&i.ID,
+		&i.GithubID,
+		&i.Name,
+		&i.TagName,
+		&i.Body,
+		&i.IsDraft,
+		&i.IsPrerelease,
+		&i.CreatedAt,
+		&i.PublishedAt,
+		&i.AuthorName,
+		&i.AuthorID,
+		&i.AuthorAvatarUrl,
+		&i.RepositoryID,
+	)
+	return i, err
+}
+
+const getReleaseWithAssets = `-- name: GetReleaseWithAssets :one
+SELECT
+    b.id, b.github_id, b.api_url, b.url, b.name, b.content_length, b.download_count, b.view_count, b.created_at, b.updated_at, b.uploaded_at, b.release_id,
+    a.id as release_id,
+    a.github_id as release_github_id,
+    a.name as release_name,
+    a.tag_name as release_tag_name,
+    a.body as release_body,
+    a.is_draft as release_is_draft,
+    a.is_prerelease as release_is_prerelease,
+    a.created_at as release_created_at,
+    a.published_at as release_published_at,
+    a.author_name as release_author_name,
+    a.author_id as release_author_id,
+    a.author_avatar_url as release_author_avatar_url,
+    a.repository_id as release_repository_id
+FROM asset b
+JOIN release a ON a.id = b.release_id
+WHERE a.id = $1
+`
+
+type GetReleaseWithAssetsRow struct {
+	ID                     int32
+	GithubID               int32
+	ApiUrl                 pgtype.Text
+	Url                    pgtype.Text
+	Name                   pgtype.Text
+	ContentLength          pgtype.Int4
+	DownloadCount          pgtype.Int4
+	ViewCount              pgtype.Int4
+	CreatedAt              pgtype.Timestamp
+	UpdatedAt              pgtype.Timestamp
+	UploadedAt             pgtype.Timestamp
+	ReleaseID              pgtype.Int4
+	ReleaseID_2            int32
+	ReleaseGithubID        int32
+	ReleaseName            pgtype.Text
+	ReleaseTagName         pgtype.Text
+	ReleaseBody            pgtype.Text
+	ReleaseIsDraft         pgtype.Bool
+	ReleaseIsPrerelease    pgtype.Bool
+	ReleaseCreatedAt       pgtype.Timestamp
+	ReleasePublishedAt     pgtype.Timestamp
+	ReleaseAuthorName      pgtype.Text
+	ReleaseAuthorID        pgtype.Text
+	ReleaseAuthorAvatarUrl pgtype.Text
+	ReleaseRepositoryID    pgtype.Int4
+}
+
+func (q *Queries) GetReleaseWithAssets(ctx context.Context, id int32) (GetReleaseWithAssetsRow, error) {
+	row := q.db.QueryRow(ctx, getReleaseWithAssets, id)
+	var i GetReleaseWithAssetsRow
+	err := row.Scan(
+		&i.ID,
+		&i.GithubID,
+		&i.ApiUrl,
+		&i.Url,
+		&i.Name,
+		&i.ContentLength,
+		&i.DownloadCount,
+		&i.ViewCount,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.UploadedAt,
+		&i.ReleaseID,
+		&i.ReleaseID_2,
+		&i.ReleaseGithubID,
+		&i.ReleaseName,
+		&i.ReleaseTagName,
+		&i.ReleaseBody,
+		&i.ReleaseIsDraft,
+		&i.ReleaseIsPrerelease,
+		&i.ReleaseCreatedAt,
+		&i.ReleasePublishedAt,
+		&i.ReleaseAuthorName,
+		&i.ReleaseAuthorID,
+		&i.ReleaseAuthorAvatarUrl,
+		&i.ReleaseRepositoryID,
+	)
+	return i, err
+}
+
+const getRepository = `-- name: GetRepository :one
+SELECT id, github_id, user_id, owner, name, token, is_private, created_at, updated_at
+FROM repository
+WHERE id = $1 LIMIT 1
+`
+
+func (q *Queries) GetRepository(ctx context.Context, id int32) (Repository, error) {
 	row := q.db.QueryRow(ctx, getRepository, id)
 	var i Repository
 	err := row.Scan(
 		&i.ID,
-		&i.OwnerID,
+		&i.GithubID,
+		&i.UserID,
 		&i.Owner,
 		&i.Name,
 		&i.Token,
@@ -313,11 +625,12 @@ func (q *Queries) GetRepository(ctx context.Context, id pgtype.Int4) (Repository
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, username, display_name, pass_hash, created_at, updated_at FROM "user"
+SELECT id, username, display_name, pass_hash, created_at, updated_at
+FROM "user"
 WHERE id = $1 LIMIT 1
 `
 
-func (q *Queries) GetUser(ctx context.Context, id pgtype.Int4) (User, error) {
+func (q *Queries) GetUser(ctx context.Context, id int32) (User, error) {
 	row := q.db.QueryRow(ctx, getUser, id)
 	var i User
 	err := row.Scan(
@@ -332,7 +645,8 @@ func (q *Queries) GetUser(ctx context.Context, id pgtype.Int4) (User, error) {
 }
 
 const listAssets = `-- name: ListAssets :many
-SELECT id, api_url, url, name, content_length, download_count, view_count, created_at, updated_at, uploaded_at, release_id FROM asset
+SELECT id, github_id, api_url, url, name, content_length, download_count, view_count, created_at, updated_at, uploaded_at, release_id
+FROM asset
 ORDER BY name
 `
 
@@ -347,6 +661,47 @@ func (q *Queries) ListAssets(ctx context.Context) ([]Asset, error) {
 		var i Asset
 		if err := rows.Scan(
 			&i.ID,
+			&i.GithubID,
+			&i.ApiUrl,
+			&i.Url,
+			&i.Name,
+			&i.ContentLength,
+			&i.DownloadCount,
+			&i.ViewCount,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.UploadedAt,
+			&i.ReleaseID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listReleaseAssets = `-- name: ListReleaseAssets :many
+SELECT id, github_id, api_url, url, name, content_length, download_count, view_count, created_at, updated_at, uploaded_at, release_id
+FROM asset
+WHERE release_id = $1
+ORDER BY uploaded_at
+`
+
+func (q *Queries) ListReleaseAssets(ctx context.Context, releaseID pgtype.Int4) ([]Asset, error) {
+	rows, err := q.db.Query(ctx, listReleaseAssets, releaseID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Asset
+	for rows.Next() {
+		var i Asset
+		if err := rows.Scan(
+			&i.ID,
+			&i.GithubID,
 			&i.ApiUrl,
 			&i.Url,
 			&i.Name,
@@ -369,12 +724,14 @@ func (q *Queries) ListAssets(ctx context.Context) ([]Asset, error) {
 }
 
 const listReleases = `-- name: ListReleases :many
-SELECT id, name, tag_name, body, is_draft, is_prerelease, created_at, published_at, author_name, author_id, author_avatar_url, repository_id FROM release
-ORDER BY name
+SELECT id, github_id, name, tag_name, body, is_draft, is_prerelease, created_at, published_at, author_name, author_id, author_avatar_url, repository_id
+FROM release
+WHERE repository_id = $1
+ORDER BY published_at
 `
 
-func (q *Queries) ListReleases(ctx context.Context) ([]Release, error) {
-	rows, err := q.db.Query(ctx, listReleases)
+func (q *Queries) ListReleases(ctx context.Context, repositoryID pgtype.Int4) ([]Release, error) {
+	rows, err := q.db.Query(ctx, listReleases, repositoryID)
 	if err != nil {
 		return nil, err
 	}
@@ -384,6 +741,7 @@ func (q *Queries) ListReleases(ctx context.Context) ([]Release, error) {
 		var i Release
 		if err := rows.Scan(
 			&i.ID,
+			&i.GithubID,
 			&i.Name,
 			&i.TagName,
 			&i.Body,
@@ -407,7 +765,8 @@ func (q *Queries) ListReleases(ctx context.Context) ([]Release, error) {
 }
 
 const listRepositories = `-- name: ListRepositories :many
-SELECT id, owner_id, owner, name, token, is_private, created_at, updated_at FROM repository
+SELECT id, github_id, user_id, owner, name, token, is_private, created_at, updated_at
+FROM repository
 ORDER BY name
 `
 
@@ -422,7 +781,45 @@ func (q *Queries) ListRepositories(ctx context.Context) ([]Repository, error) {
 		var i Repository
 		if err := rows.Scan(
 			&i.ID,
-			&i.OwnerID,
+			&i.GithubID,
+			&i.UserID,
+			&i.Owner,
+			&i.Name,
+			&i.Token,
+			&i.IsPrivate,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listUserRepository = `-- name: ListUserRepository :many
+SELECT id, github_id, user_id, owner, name, token, is_private, created_at, updated_at
+FROM repository
+WHERE user_id = $1
+ORDER BY updated_at DESC
+`
+
+func (q *Queries) ListUserRepository(ctx context.Context, userID pgtype.Int4) ([]Repository, error) {
+	rows, err := q.db.Query(ctx, listUserRepository, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Repository
+	for rows.Next() {
+		var i Repository
+		if err := rows.Scan(
+			&i.ID,
+			&i.GithubID,
+			&i.UserID,
 			&i.Owner,
 			&i.Name,
 			&i.Token,
@@ -441,7 +838,8 @@ func (q *Queries) ListRepositories(ctx context.Context) ([]Repository, error) {
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, username, display_name, pass_hash, created_at, updated_at FROM "user"
+SELECT id, username, display_name, pass_hash, created_at, updated_at
+FROM "user"
 ORDER BY username
 `
 
@@ -472,18 +870,94 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 	return items, nil
 }
 
+const searchAsset = `-- name: SearchAsset :one
+SELECT id, github_id, api_url, url, name, content_length, download_count, view_count, created_at, updated_at, uploaded_at, release_id
+FROM asset
+WHERE name = $1 LIMIT 1
+`
+
+func (q *Queries) SearchAsset(ctx context.Context, name pgtype.Text) (Asset, error) {
+	row := q.db.QueryRow(ctx, searchAsset, name)
+	var i Asset
+	err := row.Scan(
+		&i.ID,
+		&i.GithubID,
+		&i.ApiUrl,
+		&i.Url,
+		&i.Name,
+		&i.ContentLength,
+		&i.DownloadCount,
+		&i.ViewCount,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.UploadedAt,
+		&i.ReleaseID,
+	)
+	return i, err
+}
+
+const searchRelease = `-- name: SearchRelease :one
+SELECT id, github_id, name, tag_name, body, is_draft, is_prerelease, created_at, published_at, author_name, author_id, author_avatar_url, repository_id
+FROM release
+WHERE name = $1 LIMIT 1
+`
+
+func (q *Queries) SearchRelease(ctx context.Context, name pgtype.Text) (Release, error) {
+	row := q.db.QueryRow(ctx, searchRelease, name)
+	var i Release
+	err := row.Scan(
+		&i.ID,
+		&i.GithubID,
+		&i.Name,
+		&i.TagName,
+		&i.Body,
+		&i.IsDraft,
+		&i.IsPrerelease,
+		&i.CreatedAt,
+		&i.PublishedAt,
+		&i.AuthorName,
+		&i.AuthorID,
+		&i.AuthorAvatarUrl,
+		&i.RepositoryID,
+	)
+	return i, err
+}
+
+const searchRepository = `-- name: SearchRepository :one
+SELECT id, github_id, user_id, owner, name, token, is_private, created_at, updated_at
+FROM repository
+WHERE to_tsvector('english', name) @@ plainto_tsquery($1)
+`
+
+func (q *Queries) SearchRepository(ctx context.Context, plaintoTsquery string) (Repository, error) {
+	row := q.db.QueryRow(ctx, searchRepository, plaintoTsquery)
+	var i Repository
+	err := row.Scan(
+		&i.ID,
+		&i.GithubID,
+		&i.UserID,
+		&i.Owner,
+		&i.Name,
+		&i.Token,
+		&i.IsPrivate,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const updateAsset = `-- name: UpdateAsset :exec
 UPDATE asset
-  set api_url = $2,
-      url = $3,
-      name = $4,
-      content_length = $5,
-      download_count = $6
+set api_url        = $2,
+    url            = $3,
+    name           = $4,
+    content_length = $5,
+    download_count = $6
 WHERE id = $1
 `
 
 type UpdateAssetParams struct {
-	ID            pgtype.Int4
+	ID            int32
 	ApiUrl        pgtype.Text
 	Url           pgtype.Text
 	Name          pgtype.Text
@@ -505,16 +979,16 @@ func (q *Queries) UpdateAsset(ctx context.Context, arg UpdateAssetParams) error 
 
 const updateRelease = `-- name: UpdateRelease :exec
 UPDATE release
-  set name = $2,
-      tag_name = $3,
-      body = $4,
-      is_draft = $5,
-      is_prerelease = $6
+set name          = $2,
+    tag_name      = $3,
+    body          = $4,
+    is_draft      = $5,
+    is_prerelease = $6
 WHERE id = $1
 `
 
 type UpdateReleaseParams struct {
-	ID           pgtype.Int4
+	ID           int32
 	Name         pgtype.Text
 	TagName      pgtype.Text
 	Body         pgtype.Text
@@ -536,16 +1010,15 @@ func (q *Queries) UpdateRelease(ctx context.Context, arg UpdateReleaseParams) er
 
 const updateRepository = `-- name: UpdateRepository :exec
 UPDATE repository
-  set
-      owner = $2,
-      name = $3,
-      token = $4,
-      is_private = $5
+set owner      = $2,
+    name       = $3,
+    token      = $4,
+    is_private = $5
 WHERE id = $1
 `
 
 type UpdateRepositoryParams struct {
-	ID        pgtype.Int4
+	ID        int32
 	Owner     pgtype.Text
 	Name      pgtype.Text
 	Token     pgtype.Text
@@ -565,14 +1038,14 @@ func (q *Queries) UpdateRepository(ctx context.Context, arg UpdateRepositoryPara
 
 const updateUser = `-- name: UpdateUser :exec
 UPDATE "user"
-  set username = $2,
-      display_name = $3,
-      pass_hash = $4
+set username     = $2,
+    display_name = $3,
+    pass_hash    = $4
 WHERE id = $1
 `
 
 type UpdateUserParams struct {
-	ID          pgtype.Int4
+	ID          int32
 	Username    pgtype.Text
 	DisplayName pgtype.Text
 	PassHash    pgtype.Text
