@@ -48,6 +48,10 @@ func Download(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
+	if rp == nil {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 
 	release := helper.GetPlatformRelease(repo, ua.FirstPrediction)
 	if release == nil {
