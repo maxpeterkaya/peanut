@@ -13,7 +13,7 @@ jobs:
       id-token: write
       packages: write
 
-    runs-on: ubuntu-latest
+    runs-on: [ self-hosted ]
 
     env:
       DOCKER_CLI_EXPERIMENTAL: "enabled"
