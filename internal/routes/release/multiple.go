@@ -2,12 +2,13 @@ package release
 
 import (
 	"encoding/json"
-	"github.com/go-chi/chi/v5"
-	"github.com/rs/zerolog/log"
 	"net/http"
 	"peanut/internal/cache"
-	"peanut/internal/github"
+	"peanut/internal/repository"
 	"strconv"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/rs/zerolog/log"
 )
 
 func GetMultipleReleases(w http.ResponseWriter, r *http.Request) {
@@ -36,18 +37,18 @@ func GetMultipleReleases(w http.ResponseWriter, r *http.Request) {
 
 	data := rl[offset : offset+amount]
 
-	releases := make([]github.Release, 0)
+	releases := make([]repository.Release, 0)
 
 	for _, release := range data {
-		releases = append(releases, github.Release{
-			Name:        release.Name,
-			Body:        release.Body,
-			TagName:     release.TagName,
-			Draft:       release.Draft,
-			Prerelease:  release.Prerelease,
-			CreatedAt:   release.CreatedAt,
-			PublishedAt: release.PublishedAt,
-			AuthorName:  release.Author.Name,
+		releases = append(releases, repository.Release{
+			Name:         release.Name,
+			Body:         release.Body,
+			TagName:      release.TagName,
+			IsDraft:      release.IsDraft,
+			IsPrerelease: release.IsPrerelease,
+			CreatedAt:    release.CreatedAt,
+			PublishedAt:  release.PublishedAt,
+			AuthorName:   release.AuthorName,
 		})
 	}
 
