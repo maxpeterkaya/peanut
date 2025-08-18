@@ -22,8 +22,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/joho/godotenv"
+	"github.com/maxpeterkaya/peanut/common"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	chiprometheus "github.com/toshi0607/chi-prometheus"
 )
@@ -94,7 +96,7 @@ func main() {
 	// Initialize middleware
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
-	r.Use(middleware.Logger)
+	r.Use(Logger(&log.Logger))
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Heartbeat("/health"))
 
@@ -140,6 +142,8 @@ func main() {
 
 		shutdownCtx, _ := context.WithTimeout(serverCtx, 30*time.Second)
 
+		log.Info().Msg("shutting down server...")
+
 		go func() {
 			<-shutdownCtx.Done()
 			if errors.Is(shutdownCtx.Err(), context.DeadlineExceeded) {
@@ -151,7 +155,6 @@ func main() {
 		if err != nil {
 			log.Fatal().Err(err)
 		}
-		database.Close()
 		serverStopCtx()
 	}()
 
@@ -194,4 +197,57 @@ func checkAuth(auth string, token string) bool {
 		return false
 	}
 	return string(payload) == token
+}
+
+func Logger(log *zerolog.Logger) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		fn := func(w http.ResponseWriter, r *http.Request) {
+			t1 := time.Now()
+			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
+
+			next.ServeHTTP(ww, r)
+
+			t2 := time.Now()
+
+			if rec := recover(); rec != nil {
+				log.Error().
+					Str("method", r.Method).
+					Str("path", r.URL.Path).
+					Str("host", r.Host).
+					Str("protocol", r.Proto).
+					Str("referrer", r.Referer()).
+					Int("status", ww.Status()).
+					Str("ip", r.RemoteAddr).
+					Str("user_agent", r.UserAgent()).
+					Int64("bytes_in", r.ContentLength).
+					Str("bytes_in_human", common.ByteCountSI(r.ContentLength)).
+					Int("bytes_out", ww.BytesWritten()).
+					Str("bytes_out_human", common.ByteCountSI(int64(ww.BytesWritten()))).
+					Dur("latency", t2.Sub(t1)).
+					Str("latency_human", t2.Sub(t1).String()).
+					Interface("recovered", rec).
+					Msg("panic recovered")
+				http.Error(ww, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
+			}
+
+			log.Info().
+				Str("method", r.Method).
+				Str("path", r.URL.Path).
+				Str("host", r.Host).
+				Str("protocol", r.Proto).
+				Str("referrer", r.Referer()).
+				Int("status", ww.Status()).
+				Str("ip", r.RemoteAddr).
+				Str("user_agent", r.UserAgent()).
+				Int64("bytes_in", r.ContentLength).
+				Str("bytes_in_human", common.ByteCountSI(r.ContentLength)).
+				Int("bytes_out", ww.BytesWritten()).
+				Str("bytes_out_human", common.ByteCountSI(int64(ww.BytesWritten()))).
+				Dur("latency", t2.Sub(t1)).
+				Str("latency_human", t2.Sub(t1).String()).
+				Msg("api")
+		}
+		return http.HandlerFunc(fn)
+	}
 }
