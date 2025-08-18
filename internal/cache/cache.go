@@ -79,11 +79,12 @@ func Init() error {
 			LatestRelease: &repository.Release{
 				ID:              int32(*releases[0].ID),
 				GithubID:        int32(*releases[0].ID),
+				TagName:         pgtype.Text{String: *releases[0].TagName},
 				Name:            pgtype.Text{Valid: true, String: *releases[0].TagName},
 				Body:            pgtype.Text{Valid: true, String: *releases[0].Body},
 				IsDraft:         pgtype.Bool{Valid: true, Bool: *releases[0].Draft},
 				IsPrerelease:    pgtype.Bool{Valid: true, Bool: *releases[0].Prerelease},
-				PublishedAt:     pgtype.Timestamp{Time: releases[0].PublishedAt.Time},
+				PublishedAt:     pgtype.Timestamp{Time: releases[0].PublishedAt.Time, Valid: true},
 				AuthorName:      pgtype.Text{Valid: true, String: authorName},
 				AuthorID:        pgtype.Text{Valid: true, String: strconv.FormatInt(*releases[0].Author.ID, 10)},
 				AuthorAvatarUrl: pgtype.Text{Valid: true, String: *releases[0].Author.AvatarURL},
