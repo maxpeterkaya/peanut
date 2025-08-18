@@ -20,6 +20,10 @@ func GetVersionRelease(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
+	if data == nil {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 
 	release := repository.Release{
 		Name:         data.Name,
