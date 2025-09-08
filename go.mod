@@ -4,7 +4,7 @@ go 1.24
 
 require (
 	github.com/BurntSushi/toml v1.5.0
-	github.com/go-chi/chi/v5 v5.2.2
+	github.com/go-chi/chi/v5 v5.2.3
 	github.com/golang-migrate/migrate/v4 v4.18.3
 	github.com/google/go-github/v67 v67.0.0
 	github.com/jackc/pgx/v5 v5.7.5
